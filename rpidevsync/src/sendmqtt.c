@@ -254,9 +254,84 @@ e_cleanup:
 	return rc;
 }
 
+int mqttsender_join(mqttsender_handle_t _handle, unsigned long timeout_ms){
+	int rc;
+	connection_entry_t * handle = (connection_entry_t *) _handle;
+
+	struct timespec start;
+	unsigned long long start_ns;
+	MQTTAsync_token * tokens = NULL;
+
+	rc = clock_gettime(CLOCK_MONOTONIC, &start);
+
+	if(rc < 0){
+		return MQTTASYNC_FAILURE;
+	}
+
+	start_ns = start.tv_sec * 1000000000 + start.tv_nsec;
+
+	while(1){
+		rc = MQTTAsync_getPendingTokens(handle->client, &tokens);
+		if(rc != MQTTASYNC_SUCCESS || tokens == NULL){
+			break;
+		}
+
+		for(unsigned k=0; tokens[k] != -1; k++){
+			MQTTAsync_token token = tokens[k];
+
+			struct timespec now;
+			unsigned long long now_ns;
+			unsigned long elapsed_ms;
+
+			rc = MQTTAsync_waitForCompletion(handle->client, token, timeout_ms);
+
+			if(rc != MQTTASYNC_SUCCESS)
+				goto e_exit;
+
+			rc = clock_gettime(CLOCK_MONOTONIC, &now);
+			if(rc < 0){
+				rc = MQTTASYNC_FAILURE;
+				goto e_exit;
+			}
+			now_ns = now.tv_sec * 1000000000 + now.tv_nsec;
+
+			elapsed_ms = (now_ns - start_ns) / 1000000;
+			if(timeout_ms < elapsed_ms) {
+				goto e_exit;
+			}
+
+			timeout_ms -= elapsed_ms;
+		}
+
+		MQTTAsync_free(tokens);
+		tokens=NULL;
+
+	}
+
+e_exit:
+	rc = MQTTASYNC_SUCCESS;
+	if(tokens != NULL) {
+		for(unsigned k=0; tokens[k] != -1; k++){
+			if(MQTTAsync_isComplete(handle->client, tokens[k])) {
+				rc = MQTTASYNC_OPERATION_INCOMPLETE;
+				break;
+			}
+		}
+		MQTTAsync_free(tokens);
+		tokens = NULL;
+	}
+
+	return rc;
+}
+
 int mqttsender_end(mqttsender_handle_t _handle){
 	int rc;
 	connection_entry_t * handle = (connection_entry_t *) _handle;
+
+	rc = mqttsender_join(handle, 0);
+	if(rc != MQTTASYNC_SUCCESS){
+		return rc;
+	}
 
 	MQTTAsync_disconnectOptions disconn_options = MQTTAsync_disconnectOptions_initializer;
 	rc = MQTTAsync_disconnect(handle->client, &disconn_options);
@@ -266,22 +341,6 @@ int mqttsender_end(mqttsender_handle_t _handle){
 
 	MQTTAsync_destroy(&handle->client);
 
-	while(1){
-		message_entry_t * msgentry = handle->messagelist;
-		if(!msgentry){
-			break;
-		}
-
-		// delete from list
-		if(msgentry == msgentry->next){
-			handle->messagelist = NULL;
-		} else {
-			msgentry->next->last = msgentry->last;
-			msgentry->last->next = msgentry->next;
-		}
-		free(msgentry->payload);
-		free(msgentry);
-	}
 	free(handle);
 
 	return rc;
