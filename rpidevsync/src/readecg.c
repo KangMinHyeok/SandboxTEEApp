@@ -131,3 +131,7 @@ int mcp3004_readvalue(int fd, unsigned channel){
 
 #undef	TRANSFER_LEN
 }
+
+int mcp3004_close(int fd){
+	return close(fd);
+}
