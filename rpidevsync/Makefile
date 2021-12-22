@@ -9,12 +9,18 @@ PAHO_MQTT_C_BLDFLAGS = blddir=$(abspath $(PAHO_MQTT_C_BUILDDIR))
 PAHOLIBDIR := $(PAHO_MQTT_C_USRDIR)/lib
 PAHOINCLUDEDIR := $(PAHO_MQTT_C_USRDIR)/include
 MQTTFLAGS := -I $(PAHOINCLUDEDIR) -L $(PAHOLIBDIR) -lpaho-mqtt3as -lpaho-mqtt3a
+BLDFLAGS := $(CFLAGS) -O -I include/ -Wall
 
-.PHONY := all
+SRCDIR := src
+
+.PHONY := all clean fullclean paho run
 all: samplemqtt
 
 clean:
-	rm -f samplemqtt
+	rm -f samplemqtt *.o
+
+fullclean: clean
+	rm -rf $(PAHO_MQTT_C_REPODIR) $(PAHO_MQTT_C_BUILDDIR) $(PAHO_MQTT_C_USRDIR)
 
 $(PAHO_MQTT_C_REPODIR):
 	mkdir -p $(PAHO_MQTT_C_REPODIR)
@@ -32,5 +38,11 @@ paho: $(PAHO_MQTT_C_USRDIR)
 run: samplemqtt
 	LD_LIBRARY_PATH=$(PAHOLIBDIR) ./samplemqtt
 
-%: %.c
-	$(CC) $(CFLAGS) -o $@ $< $(MQTTFLAGS)
+samplemqtt: samplemqtt.o
+	$(CC) -o $@ $< $(BLDFLAGS) $(MQTTFLAGS)
+
+%.o: $(SRCDIR)/%.c $(PAHO_MQTT_C_USRDIR)
+	$(CC) -c $< $(BLDFLAGS) $(MQTTFLAGS)
+
+%.o: $(SRCDIR)/%.cpp $(PAHO_MQTT_C_USRDIR)
+	$(CXX) -c $< $(BLDFLAGS) $(CXXFLAGS) $(MQTTFLAGS)
