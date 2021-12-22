@@ -9,6 +9,54 @@
 #include <MQTTAsync.h>
 #include <sendmqtt.h>
 
+static void on_deliveryFailure(void * context, MQTTAsync_failureData * response){
+	int rc;
+
+	// called when send failed
+	fprintf(stderr, "failture callback for context %p\n", context);
+
+	//TODO: retry failed token
+	message_entry_t * msgentry = (message_entry_t *) context;
+	connection_entry_t * handle = msgentry->conn;
+
+	// delete from list
+	free(msgentry->payload);
+	free(msgentry);
+	return;
+	// temporarily no retry
+
+	// call send message again
+	MQTTAsync_responseOptions response_options = MQTTAsync_responseOptions_initializer;
+	response_options.context = (void *)msgentry;
+	response_options.onSuccess = on_deliverySuccess;
+	response_options.onFailure = on_deliveryFailure;
+
+	while(msgentry->trycount < 5) {
+		msgentry->trycount++;
+		rc = MQTTAsync_send(handle->client, msgentry->topic, 
+				msgentry->payloadlen, msgentry->payload, 
+				0 /* qos */, 0 /* retained flag */, &response_options);
+
+		if(rc != MQTTASYNC_SUCCESS){
+			sleep(0);
+		} else {
+			msgentry->token = response_options.token;
+			return;
+		}
+	}
+
+	printf("failed message retry count exceeded (5 times)\n");
+	printf("dump:");
+	if(!msgentry->payloadlen) printf(" (nil)\n");
+	else {
+		for(size_t k=0;k<msgentry->payloadlen;++k) printf(" %02x", ((unsigned char *)msgentry->payload)[k]);
+		putchar('\n');
+	}
+
+	free(msgentry->payload);
+	free(msgentry);
+}
+
 static inline int generate_random_clientid(char * clientid, size_t clientid_len){
 	const char * randdev = "/dev/urandom";
 
