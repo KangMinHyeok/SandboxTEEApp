@@ -35,23 +35,23 @@ void delivered(void *context, MQTTAsync_token dt)
     printf("Message with token value %d delivery confirmed\n", dt);
     deliveredtoken = dt;
 }
-int msgarrvd(void *context, char *topicName, int topicLen, MQTTAsync_message *message)
-{
-    int i;
-    char* payloadptr;
-    printf("Message arrived\n");
-    printf("     topic: %s\n", topicName);
-    printf("   message: ");
-    payloadptr = message->payload;
-    for(i=0; i<message->payloadlen; i++)
-    {
-        putchar(*payloadptr++);
-    }
-    putchar('\n');
-    MQTTAsync_freeMessage(&message);
-    MQTTAsync_free(topicName);
-    return 1;
-}
+//int msgarrvd(void *context, char *topicName, int topicLen, MQTTAsync_message *message)
+//{
+//    int i;
+//    char* payloadptr;
+//    printf("Message arrived\n");
+//    printf("     topic: %s\n", topicName);
+//    printf("   message: ");
+//    payloadptr = message->payload;
+//    for(i=0; i<message->payloadlen; i++)
+//    {
+//        putchar(*payloadptr++);
+//    }
+//    putchar('\n');
+//    MQTTAsync_freeMessage(&message);
+//    MQTTAsync_free(topicName);
+//    return 1;
+//}
 void connlost(void *context, char *cause)
 {
     printf("\nConnection lost\n");
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
     conn_opts.automaticReconnect = 1;
     ssl_opts.trustStore = CAPATH;
     conn_opts.ssl = &ssl_opts;
-    MQTTAsync_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
+    MQTTAsync_setCallbacks(client, NULL, connlost, NULL /* was msgarrvd */ , delivered);
     if ((ret = MQTTAsync_connect(client, &conn_opts)) != MQTTASYNC_SUCCESS)
     {
         printf("Failed to connect, return code %d\n", ret);
