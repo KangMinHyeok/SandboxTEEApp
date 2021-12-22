@@ -17,6 +17,11 @@ all: samplemqtt
 clean:
 	rm -f samplemqtt
 
+$(PAHO_MQTT_C_REPODIR):
+	mkdir -p $(PAHO_MQTT_C_REPODIR)
+	git clone --single-branch --branch $(PAHO_MQTT_C_BRANCH) $(PAHO_MQTT_C_URL) $(PAHO_MQTT_C_REPODIR)
+
+
 run: samplemqtt
 	./samplemqtt
 
