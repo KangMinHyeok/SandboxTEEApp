@@ -29,7 +29,6 @@ static inline uint64_t htonll(uint64_t hostll){
 	return *(uint64_t *)(&llexpand);
 }
 
-
 volatile MQTTAsync_token deliveredtoken;
 void delivered(void *context, MQTTAsync_token dt)
 {
@@ -58,7 +57,18 @@ void connlost(void *context, char *cause)
     printf("\nConnection lost\n");
     printf("     cause: %s\n", cause);
 }
-
+struct timespec diff(struct timespec start, struct timespec end)
+{
+    struct timespec temp;
+    if ((end.tv_nsec-start.tv_nsec)<0) {
+        temp.tv_sec = end.tv_sec-start.tv_sec-1;
+        temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+    } else {
+        temp.tv_sec = end.tv_sec-start.tv_sec;
+        temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+    }
+    return temp;
+}
 int main(int argc, char* argv[])
 {
     int ret;
@@ -96,12 +106,36 @@ int main(int argc, char* argv[])
     deliveredtoken = 0;
     MQTTAsync_responseOptions response_options = MQTTAsync_responseOptions_initializer;
 
+    struct timespec first_scoop;
+    struct timespec last_scoop;
+    ret = clock_gettime(CLOCK_MONOTONIC, &first_scoop);
+    if(ret){
+	    printf("clock fetch failed\n");
+    }
+    printf("start time at (%lu, %ld)\n", first_scoop.tv_sec, first_scoop.tv_nsec);
+    last_scoop = first_scoop;
+
+    struct timespec sleep_interval = {0, 3000000};
+    long long deadline_ns = (long long)4 * 1e6;
+    long long total_runtime_ns = (long long)3 * 60 * 60 * 1e9;
     while(1){
 	    struct timespec this_scoop;
 	    ret = clock_gettime(CLOCK_MONOTONIC, &this_scoop);
 
 	    struct timespec elapsed;
 	    long long elapsed_time_ns;
+
+	    elapsed = diff(first_scoop, this_scoop);
+	    elapsed_time_ns = elapsed.tv_sec * 1000000000 + elapsed.tv_nsec;
+	    if(elapsed_time_ns > total_runtime_ns){
+		    break;
+	    }
+
+	    elapsed = diff(last_scoop, this_scoop);
+	    elapsed_time_ns = elapsed.tv_sec * 1000000000 + elapsed.tv_nsec;
+	    if(elapsed_time_ns > deadline_ns){
+		    printf("elapsed time hit %lld at (%lu, %ld)\n", elapsed_time_ns, this_scoop.tv_sec, this_scoop.tv_nsec);
+	    }
 
 	    struct timespec now;
 	    ret = clock_gettime(CLOCK_REALTIME, &now);
@@ -134,6 +168,8 @@ int main(int argc, char* argv[])
 	//	sleep(1);
 	    }
 	
+	last_scoop = this_scoop;
+	nanosleep(&sleep_interval, NULL);
     }
 //    printf("Waiting for publication of %s\n"
 //            "on topic %s for client with ClientID: %s\n",
