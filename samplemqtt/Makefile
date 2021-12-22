@@ -10,7 +10,6 @@ PAHOLIBDIR := $(PAHO_MQTT_C_USRDIR)/lib
 PAHOINCLUDEDIR := $(PAHO_MQTT_C_USRDIR)/include
 MQTTFLAGS := -I $(PAHOINCLUDEDIR) -L $(PAHOLIBDIR) -lpaho-mqtt3as -lpaho-mqtt3a
 
-
 .PHONY := all
 all: samplemqtt
 
@@ -28,8 +27,10 @@ $(PAHO_MQTT_C_USRDIR): $(PAHO_MQTT_C_REPODIR) $(PAHO_MQTT_C_BUILDDIR)
 	mkdir -p $(PAHO_MQTT_C_USRDIR)/lib $(PAHO_MQTT_C_USRDIR)/include $(PAHO_MQTT_C_USRDIR)/share/man/man1 $(PAHO_MQTT_C_USRDIR)/share/man/man2 $(PAHO_MQTT_C_USRDIR)/share/man/man3
 	make -C $(PAHO_MQTT_C_REPODIR) install $(PAHO_MQTT_C_BLDFLAGS) DESTDIR=$(abspath $(PAHO_MQTT_C_USRDIR)) LDCONFIG=true prefix=
 
+paho: $(PAHO_MQTT_C_USRDIR)
+
 run: samplemqtt
-	./samplemqtt
+	LD_LIBRARY_PATH=$(PAHOLIBDIR) ./samplemqtt
 
 %: %.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< $(MQTTFLAGS)
