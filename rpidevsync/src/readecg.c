@@ -98,3 +98,36 @@ e_cleanup:
 e_exit:
 	return rc;
 }
+
+int mcp3004_readvalue(int fd, unsigned channel){
+#define	TRANSFER_LEN	3
+
+	int rc, voltage;
+	unsigned char tx_buf[TRANSFER_LEN] = {}, rx_buf[TRANSFER_LEN] = {};
+	struct spi_ioc_transfer xfer_data = {
+		.tx_buf		= (unsigned long) tx_buf,
+		.rx_buf		= (unsigned long) rx_buf,
+		.len		= (size_t) TRANSFER_LEN,
+	};
+
+	if(channel >= 4){
+		return -ENODEV;
+	}
+
+	// set start bit
+	tx_buf[0] = (1 << 0);
+	// set module specific read info
+	tx_buf[1] = ((1 << 7) | (channel << 4));
+
+	rc = ioctl(fd, SPI_IOC_MESSAGE(1), &xfer_data);
+
+	if(rc < 0){
+		perror("spi xfer operation failed");
+		return rc;
+	}
+
+	voltage = (((rx_buf[1] & 0x03) << 8) | (rx_buf[2]));
+	return voltage;
+
+#undef	TRANSFER_LEN
+}
