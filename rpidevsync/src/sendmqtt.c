@@ -25,6 +25,16 @@ typedef struct _message_entry_t {
 	unsigned trycount;
 } message_entry_t;
 
+static void on_connectionLost(void * context, char * cause) {
+	printf("Connection lost: %s\n", cause);
+}
+
+//static void on_deliveryComplete(void * context, MQTTAsync_token dt)
+//{
+//	// called when puback received (not for qos 0)
+//	printf("Message with context %p token value %d delivery confirmed\n", context, dt);
+//}
+
 static void on_deliverySuccess(void * context, MQTTAsync_successData * response){
 	// called when send succeeded
 	fprintf(stderr, "success callback for context %p\n", context);
