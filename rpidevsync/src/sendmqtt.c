@@ -9,6 +9,48 @@
 #include <MQTTAsync.h>
 #include <sendmqtt.h>
 
+static inline int generate_random_clientid(char * clientid, size_t clientid_len){
+	const char * randdev = "/dev/urandom";
+
+	int rc, fd;
+	uint32_t randnum = 0;
+
+	rc = open(randdev, O_RDONLY);
+
+	if(rc < 0){
+		perror("random device open failed");
+		goto e_exit;
+	}
+
+	fd = rc;
+
+	rc = read(fd, (void *)(&randnum), sizeof(randnum));
+
+	if(rc <= 0){
+		perror("random device read failed");
+		goto e_cleanup;
+	}
+
+	rc = close(fd);
+	if(rc < 0){
+		perror("random device close failed");
+	}
+
+	rc = snprintf(clientid, clientid_len, "ecgdev_%u", randnum);
+	if(rc < 0){
+		printf("clientid formatting error\n");
+		goto e_exit;
+	}
+
+	return 0;
+
+e_cleanup:
+	close(fd);
+
+e_exit:
+	return rc;
+}
+
 int mqttsender_init(mqttsender_handle_t * Phandle, const char * address, const char * clientid, 
 		const char * username, const char * password, 
 		int use_tls, const char * capath, int insecure_tls){
