@@ -11,7 +11,7 @@
 
 static void on_deliverySuccess(void * context, MQTTAsync_successData * response){
 	// called when send succeeded
-//	fprintf(stderr, "success callback for context %p\n", context);
+	fprintf(stderr, "success callback for context %p\n", context);
 	
 	//erase completed token
 	message_entry_t * msgentry = (message_entry_t *) context;
@@ -251,5 +251,38 @@ e_cleanup2:
 
 e_cleanup:
 	free(msgentry);
+	return rc;
+}
+
+int mqttsender_end(mqttsender_handle_t _handle){
+	int rc;
+	connection_entry_t * handle = (connection_entry_t *) _handle;
+
+	MQTTAsync_disconnectOptions disconn_options = MQTTAsync_disconnectOptions_initializer;
+	rc = MQTTAsync_disconnect(handle->client, &disconn_options);
+	if(rc != MQTTASYNC_SUCCESS){
+		return rc;
+	}
+
+	MQTTAsync_destroy(&handle->client);
+
+	while(1){
+		message_entry_t * msgentry = handle->messagelist;
+		if(!msgentry){
+			break;
+		}
+
+		// delete from list
+		if(msgentry == msgentry->next){
+			handle->messagelist = NULL;
+		} else {
+			msgentry->next->last = msgentry->last;
+			msgentry->last->next = msgentry->next;
+		}
+		free(msgentry->payload);
+		free(msgentry);
+	}
+	free(handle);
+
 	return rc;
 }
