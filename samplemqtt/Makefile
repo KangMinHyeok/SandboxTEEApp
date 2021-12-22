@@ -21,6 +21,8 @@ $(PAHO_MQTT_C_REPODIR):
 	mkdir -p $(PAHO_MQTT_C_REPODIR)
 	git clone --single-branch --branch $(PAHO_MQTT_C_BRANCH) $(PAHO_MQTT_C_URL) $(PAHO_MQTT_C_REPODIR)
 
+$(PAHO_MQTT_C_BUILDDIR): $(PAHO_MQTT_C_REPODIR)
+	$(MAKE) -C $(PAHO_MQTT_C_REPODIR) $(PAHO_MQTT_C_BLDFLAGS)
 
 run: samplemqtt
 	./samplemqtt
