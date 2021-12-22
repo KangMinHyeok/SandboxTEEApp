@@ -9,6 +9,22 @@
 #include <MQTTAsync.h>
 #include <sendmqtt.h>
 
+struct _message_entry_t;
+struct _connection_entry_t;
+
+typedef struct _connection_entry_t {
+	MQTTAsync client;
+} connection_entry_t;
+
+typedef struct _message_entry_t {
+	struct _connection_entry_t * conn;
+	const char * topic;
+	void * payload;
+	size_t payloadlen;
+	MQTTAsync_token token;
+	unsigned trycount;
+} message_entry_t;
+
 static void on_deliverySuccess(void * context, MQTTAsync_successData * response){
 	// called when send succeeded
 	fprintf(stderr, "success callback for context %p\n", context);
