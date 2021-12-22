@@ -137,3 +137,59 @@ e_cleanup:
 	free(handle);
 	return rc;
 }
+
+int mqttsender_send(mqttsender_handle_t _handle, const char * topic, void * payload, size_t payloadlen){
+	int rc;
+	message_entry_t * msgentry;
+	size_t topiclen;
+	void * payloaddup;
+	char * topicdup;
+	
+	MQTTAsync_responseOptions response_options = MQTTAsync_responseOptions_initializer;
+
+	if(!_handle || !topic || !payload)
+		return MQTTASYNC_NULL_PARAMETER;
+
+	connection_entry_t * handle = (connection_entry_t *) _handle;
+
+	msgentry = (message_entry_t *) malloc(sizeof(message_entry_t));
+	if(msgentry == NULL)
+		return MQTTASYNC_FAILURE;
+
+	topiclen = strlen(topic);
+	payloaddup = malloc(payloadlen + topiclen + 1);
+	if(payloaddup == NULL){
+		rc = MQTTASYNC_FAILURE;
+		goto e_cleanup;
+	}
+	memcpy(payloaddup, payload, payloadlen);
+
+	topicdup = (char *) payloaddup + payloadlen;
+	memcpy(topicdup, topic, topiclen + 1);
+
+	response_options.context = (void *)msgentry;
+	response_options.onSuccess = on_deliverySuccess;
+	response_options.onFailure = on_deliveryFailure;
+
+	msgentry->topic = topicdup;
+	msgentry->payload = payloaddup;
+	msgentry->payloadlen = payloadlen;
+	msgentry->conn = handle;
+	msgentry->token = response_options.token;
+	msgentry->trycount = 0;
+
+	rc = MQTTAsync_send(handle->client, topic, 
+			payloadlen, payload, 
+			0 /* qos */, 0 /* retained flag */, &response_options);
+	if(rc != MQTTASYNC_SUCCESS)
+		goto e_cleanup2;
+
+	return MQTTASYNC_SUCCESS;
+
+e_cleanup2:
+	free(payloaddup);
+
+e_cleanup:
+	free(msgentry);
+	return rc;
+}
