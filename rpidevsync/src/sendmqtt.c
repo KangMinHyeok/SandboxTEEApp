@@ -9,6 +9,18 @@
 #include <MQTTAsync.h>
 #include <sendmqtt.h>
 
+static void on_deliverySuccess(void * context, MQTTAsync_successData * response){
+	// called when send succeeded
+//	fprintf(stderr, "success callback for context %p\n", context);
+	
+	//erase completed token
+	message_entry_t * msgentry = (message_entry_t *) context;
+
+	// delete from list
+	free(msgentry->payload);
+	free(msgentry);
+}
+
 static void on_deliveryFailure(void * context, MQTTAsync_failureData * response){
 	int rc;
 
