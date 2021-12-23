@@ -75,3 +75,16 @@ uint64_t voltage;               /* unit: [uV] */
 #include <arpa/inet.h> // for htonl
 
 static inline uint64_t htonll(uint64_t hostll){
+	struct _llexpand {
+		uint32_t upper, lower;
+	} llexpand;
+
+	llexpand.upper = htonl((uint32_t)((hostll >> 32U) & ((uint64_t)0xffffffff)));
+	llexpand.lower = htonl((uint32_t)(hostll & ((uint64_t)0xffffffff)));
+
+	return *(uint64_t *)(&llexpand);
+}
+
+typedef struct _dataelement_t {
+	struct _dataelement_t * next;
+	ecgdatapoint_t data;
