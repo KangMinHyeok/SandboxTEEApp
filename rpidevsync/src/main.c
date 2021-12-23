@@ -257,3 +257,16 @@ void thread_main_getvoltage(void *){
 		if(rc < 0){
 			perror("datalock locking fail");
 			goto e_cleanup_step;
+		}
+
+		if(pool == NULL){
+			p = malloc(sizeof(dataelement_t));
+			if(p == NULL){
+				fprintf(stderr, "failed to allocate dataelement_t\n");
+				goto e_cleanup_step;
+			}
+		} else {
+			p = pop_from_pool();
+		}
+
+		memcpy(&p->data, &element, sizeof(ecgdatapoint_t));
