@@ -43,7 +43,6 @@ static void on_connectionLost(void * context, char * cause) {
 
 static void on_deliverySuccess(void * context, MQTTAsync_successData * response){
 	// called when send succeeded
-	fprintf(stderr, "success callback for context %p\n", context);
 //	fprintf(stderr, "success callback for context %p\n", context);
 	
 	//erase completed token
@@ -144,7 +143,6 @@ e_exit:
 	return rc;
 }
 
-int mqttsender_init(mqttsender_handle_t * Phandle, const char * address, const char * clientid, 
 EXPORT int mqttsender_init(mqttsender_handle_t * Phandle, const char * address, const char * clientid, 
 		const char * username, const char * password, 
 		int use_tls, const char * capath, int insecure_tls){
@@ -232,7 +230,6 @@ e_cleanup:
 	return rc;
 }
 
-int mqttsender_send(mqttsender_handle_t _handle, const char * topic, void * payload, size_t payloadlen){
 EXPORT int mqttsender_send(mqttsender_handle_t _handle, const char * topic, void * payload, size_t payloadlen){
 	int rc;
 	message_entry_t * msgentry;
@@ -289,7 +286,6 @@ e_cleanup:
 	return rc;
 }
 
-int mqttsender_join(mqttsender_handle_t _handle, unsigned long timeout_ms){
 EXPORT int mqttsender_join(mqttsender_handle_t _handle, unsigned long timeout_ms){
 	int rc;
 	connection_entry_t * handle = (connection_entry_t *) _handle;
@@ -360,15 +356,10 @@ e_exit:
 	return rc;
 }
 
-int mqttsender_end(mqttsender_handle_t _handle){
 EXPORT int mqttsender_end(mqttsender_handle_t _handle){
 	int rc;
 	connection_entry_t * handle = (connection_entry_t *) _handle;
 
-	rc = mqttsender_join(handle, 0);
-	if(rc != MQTTASYNC_SUCCESS){
-		return rc;
-	}
 //	rc = mqttsender_join(handle, 0);
 //	if(rc != MQTTASYNC_SUCCESS){
 //		return rc;
