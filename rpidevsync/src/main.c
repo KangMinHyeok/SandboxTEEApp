@@ -244,3 +244,16 @@ void thread_main_getvoltage(void *){
 			goto e_step;
 		}
 
+		rc = clock_gettime(CLOCK_REALTIME, &now);
+		if(rc < 0){
+			perror("Failed to fetch realtime\n");
+			goto e_step;
+		}
+
+		data.epoch_milliseconds = htonll((uint64_t)now.tv_sec * 1000 + now.tv_nsec / (uint64_t)1e6);
+		data.voltage = htonll(mcp3004_value_to_voltage((uint32_t)rc));
+
+		rc = pthread_mutex_lock(&datalock);
+		if(rc < 0){
+			perror("datalock locking fail");
+			goto e_cleanup_step;
