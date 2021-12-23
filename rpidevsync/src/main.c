@@ -348,3 +348,16 @@ int main(int argc, char * argv[]){
 
 		void * payload = (void *)(&data);
 		size_t payloadlen = sizeof(data);
+
+		rc = mqttsender_send(client, topic, payload, payloadlen);
+		if(rc < 0){
+			printf("Failed to send, return code %d\n", rc);
+		}
+
+//		struct timespec sleepinterval;
+//		sleepinterval.tv_sec = 0;
+//		sleepinterval.tv_nsec = 3000000;
+//		nanosleep(&sleepinterval, NULL);
+	}
+
+	rc = mqttsender_join(client, 1000000);
