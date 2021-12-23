@@ -322,3 +322,16 @@ int main(int argc, char * argv[]){
 	MQTTAsync client;
 
 	const char * addr = ADDRESS;
+	const char * clientid = CLIENTID;
+	const char * username = USERNAME;
+	const char * password = PASSWORD;
+	const char * topic = TOPIC;
+	const char * capath = CAPATH;
+
+	rc = mqttsender_init(&client, addr, clientid, username, password, capath);
+	if(rc < 0){
+		printf("Failed to initialize, return code %d\n", rc);
+		goto e_cleanup;
+	}
+
+	for(int k=0;k<0x100;++k){
