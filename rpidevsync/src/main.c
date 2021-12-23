@@ -166,3 +166,16 @@ void thread_main_payload_launch(void * arg){
 			len += sizeof(ecgdatapoint_t);
 
 			push_to_pool(onload);
+		}
+
+		rc = pthread_mutex_unlock(&datalock);
+		if(rc < 0){
+			perror("datalock unlock fail");
+			continue;
+		}
+
+		if(len > BLOCK_SIZE - sizeof(ecgdatapoint_t)){
+			for(size_t trycount=0;trycount<5;++trycount){
+				rc = mqttsender_send(client, topic, (void *)buf, len);
+				if(rc < 0){
+					printf("Failed to send, return code %d\n", rc);
