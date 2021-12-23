@@ -153,3 +153,16 @@ void thread_main_payload_launch(void * arg){
 	}
 
 	while(1){
+		rc = pthread_mutex_lock(&datalock);
+		if(rc < 0){
+			perror("datalock locking fail");
+			continue;
+		}
+
+		while(head != NULL && len + sizeof(ecgdatapoint_t) <= BLOCK_SIZE){
+			Pdataelement_t onload = pop_from_head();
+
+			memcpy(&buf[len], (void *) &onload->data, sizeof(ecgdatapoint_t));
+			len += sizeof(ecgdatapoint_t);
+
+			push_to_pool(onload);
