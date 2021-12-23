@@ -391,6 +391,13 @@ EXPORT int mqttsender_end(mqttsender_handle_t _handle){
 //		// delete from list
 //		if(msgentry == msgentry->next){
 //			handle->messagelist = NULL;
+//		} else {
+//			msgentry->next->last = msgentry->last;
+//			msgentry->last->next = msgentry->next;
+//		}
+//		free(msgentry->payload);
+//		free(msgentry);
+//	}
 	free(handle);
 
 	return rc;
