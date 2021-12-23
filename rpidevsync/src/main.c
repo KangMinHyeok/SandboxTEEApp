@@ -231,3 +231,16 @@ void thread_main_getvoltage(void *){
 	rc = clock_gettime(CLOCK_MONOTONIC, &nextstep);
 	if(rc < 0){
 		fprintf(stderr, "failed to get monotonic time\n");
+		goto e_cleanup;
+	}
+
+	while(1){
+		struct timespec now;
+		ecgdatapoint_t element;
+		Pdataelement_t p = NULL;
+
+		rc = mcp3004_readvalue(fd, channel);
+		if(rc < 0){
+			goto e_step;
+		}
+
