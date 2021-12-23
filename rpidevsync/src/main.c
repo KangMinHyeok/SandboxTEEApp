@@ -62,3 +62,16 @@
 #define USERNAME    "demo"
 #define PASSWORD    "guest"
 #define TOPIC       "hello"
+//#define PAYLOAD     "Msg from RaspberryPiAlpha"
+#define QOS         0
+#define TIMEOUT     10000L
+#define CAPATH      "./sp_cert_ca.crt"
+
+typedef struct ecgdatapoint_t {
+uint64_t epoch_milliseconds;    /* unit: [ms] */
+uint64_t voltage;               /* unit: [uV] */
+} __attribute__((__packed__)) ecgdatapoint_t;
+
+#include <arpa/inet.h> // for htonl
+
+static inline uint64_t htonll(uint64_t hostll){
