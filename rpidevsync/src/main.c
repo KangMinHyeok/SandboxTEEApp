@@ -114,3 +114,16 @@ static inline Pdataelement_t pop_from_head_tail(Pdataelement_t * Phead, Pdataele
 	if(*Phead != NULL){
 		p = *Phead;
 
+		if(Ptail != NULL && *Phead == *Ptail){
+			*Phead = *Ptail = NULL;
+		} else {
+			*Phead = (*Phead)->next;
+		}
+	}
+
+	return p;
+}
+
+static inline Pdataelement_t pop_from_head(){ return pop_from_head_tail(&head, &tail); }
+static inline void push_to_head(Pdataelement_t p){ push_to_head_tail(p, &head, &tail); }
+static inline Pdataelement_t pop_from_pool(){ return pop_from_head_tail(&pool, NULL); }
