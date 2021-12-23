@@ -88,3 +88,16 @@ static inline uint64_t htonll(uint64_t hostll){
 typedef struct _dataelement_t {
 	struct _dataelement_t * next;
 	ecgdatapoint_t data;
+} dataelement_t, * Pdataelement_t;
+
+static pthread_mutex_t datalock = PTHREAD_MUTEX_INITIALIZER;
+static Pdataelement_t head = NULL, tail = NULL, pool = NULL;
+
+static inline void push_to_head_tail(Pdataelement_t p, Pdataelement_t * Phead, Pdataelement_t * Ptail){
+	if(Phead == NULL) return;
+
+	if(Ptail != NULL && *Ptail == NULL){
+		p->next = NULL;
+		*Ptail = p;
+	} else {
+		p->next = *Phead;
