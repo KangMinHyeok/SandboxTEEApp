@@ -296,3 +296,16 @@ e_step:
 
 
 e_cleanup:
+	if(fd >= 0){
+		mcp3004_close(fd);
+		fd = -1;
+	}
+
+e_exit:
+	return;
+
+}
+
+typedef struct _option_t {
+	const char * addr;
+	const char * clientid;
