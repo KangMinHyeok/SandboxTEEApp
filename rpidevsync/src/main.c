@@ -361,3 +361,14 @@ int main(int argc, char * argv[]){
 	}
 
 	rc = mqttsender_join(client, 1000000);
+	if(rc < 0){
+		printf("Failed to wait until complete, return code %d\n", rc);
+		goto e_cleanup;
+	}
+
+e_cleanup:
+	rc = mqttsender_end(client);
+
+//e_exit:
+	return 0;
+}
