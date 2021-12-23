@@ -49,3 +49,16 @@
  *   --key KEY             client private key for authentication if required by
  *                         server
  *   --insecure            disable server certificate verification
+ *   --normal ACTION       send normal ecg signal (unit: ms)
+ *   --abnormal ACTION     send abnormal ecg signal (unit: ms)
+ *   --normal-cycle ACTION
+ *                         send normal ecg signal (unit: cycle)
+ *   --abnormal-cycle ACTION
+ *                         send abnormal ecg signal (unit: cycle)
+ */
+
+#define ADDRESS     "ssl://147.46.244.130:8883"
+#define CLIENTID    "RaspberryPiAlpha"
+#define USERNAME    "demo"
+#define PASSWORD    "guest"
+#define TOPIC       "hello"
