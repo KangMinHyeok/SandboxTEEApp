@@ -127,3 +127,16 @@ static inline Pdataelement_t pop_from_head_tail(Pdataelement_t * Phead, Pdataele
 static inline Pdataelement_t pop_from_head(){ return pop_from_head_tail(&head, &tail); }
 static inline void push_to_head(Pdataelement_t p){ push_to_head_tail(p, &head, &tail); }
 static inline Pdataelement_t pop_from_pool(){ return pop_from_head_tail(&pool, NULL); }
+static inline void push_to_pool(Pdataelement_t p){ push_to_head_tail(p, &pool, NULL); }
+
+void thread_main_payload_launch(void * arg){
+	int rc;
+
+	MQTTAsync client;
+
+	const char * addr = ADDRESS;
+	const char * clientid = CLIENTID;
+	const char * username = USERNAME;
+	const char * password = PASSWORD;
+	const char * topic = TOPIC;
+	const char * capath = CAPATH;
