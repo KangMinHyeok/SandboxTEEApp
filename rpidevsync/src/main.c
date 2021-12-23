@@ -101,3 +101,16 @@ static inline void push_to_head_tail(Pdataelement_t p, Pdataelement_t * Phead, P
 		*Ptail = p;
 	} else {
 		p->next = *Phead;
+	}
+
+	*Phead = p;
+}
+
+static inline Pdataelement_t pop_from_head_tail(Pdataelement_t * Phead, Pdataelement_t * Ptail){
+	Pdataelement_t p = NULL;
+
+	if(Phead == NULL) return NULL;
+
+	if(*Phead != NULL){
+		p = *Phead;
+
