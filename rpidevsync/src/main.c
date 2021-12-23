@@ -7,3 +7,6 @@
 #include <pthread.h>
 #include <signal.h>
 
+#include <readecg.h>
+#include <sendmqtt.h>
+
