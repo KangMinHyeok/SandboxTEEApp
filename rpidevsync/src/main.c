@@ -36,3 +36,16 @@
  *   -H HOST, --host HOST  mqtt host to connect to (default: localhost)
  *   -p PORT, --port PORT  network port to connect to (default: 1883)
  *   -t TOPIC, --topic TOPIC
+ *                         mqtt topic to publish to (default: hello)
+ *   -u USERNAME, --username USERNAME
+ *                         provide a username
+ *   -P PASSWORD, --password PASSWORD
+ *                         provide a password
+ *   --tls                 enable tls
+ *   --cacert CACERT       path to a file containing trusted CA certificates to
+ *                         enable encrypted communication
+ *   --cert CERT           client certificate for authentication if required by
+ *                         server
+ *   --key KEY             client private key for authentication if required by
+ *                         server
+ *   --insecure            disable server certificate verification
