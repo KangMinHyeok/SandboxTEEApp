@@ -335,3 +335,16 @@ int main(int argc, char * argv[]){
 	}
 
 	for(int k=0;k<0x100;++k){
+		struct timespec now;
+		rc = clock_gettime(CLOCK_REALTIME, &now);
+		if(rc < 0){
+			perror("Failed to fetch realtime\n");
+			continue;
+		}
+
+		ecgdatapoint_t data;
+		data.epoch_milliseconds = htonll((uint64_t)now.tv_sec * 1000 + now.tv_nsec / (uint64_t)1e6);
+		data.voltage = htonll((now.tv_sec % 4 * 1000) + 2000);
+
+		void * payload = (void *)(&data);
+		size_t payloadlen = sizeof(data);
