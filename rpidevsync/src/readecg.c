@@ -6,10 +6,17 @@
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
 
-#define DEFAULT_SPI_MODE		SPI_MODE_0
-#define DEFAULT_SPI_LSB_FIRST		0
-#define DEFAULT_SPI_BITS_PER_WORD	8
-#define DEFAULT_SPI_MAX_SPEED_HZ	1350000 // 1.35 (MHz)
+#include <readecg.h>
+
+//#define DEFAULT_SPI_MODE		SPI_MODE_0
+//#define DEFAULT_SPI_LSB_FIRST		0
+//#define DEFAULT_SPI_BITS_PER_WORD	8
+//#define DEFAULT_SPI_MAX_SPEED_HZ	1350000 // 1.35 (MHz)
+
+// forward declaration
+int mcp3004_open(const char * devname, int spimode, int lsbfirst, unsigned bits_per_word, uint32_t max_speed_hz);
+int mcp3004_readvalue(int fd, unsigned channel);
+int mcp3004_close(int fd);
 
 int mcp3004_open(const char * devname, int spimode, int lsbfirst, unsigned bits_per_word, uint32_t max_speed_hz){
 	int rc, fd;
