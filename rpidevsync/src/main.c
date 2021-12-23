@@ -270,3 +270,16 @@ void thread_main_getvoltage(void *){
 		}
 
 		memcpy(&p->data, &element, sizeof(ecgdatapoint_t));
+		push_to_head(p);
+
+e_cleanup_step:
+
+		rc = pthread_mutex_unlock(&datalock);
+		if(rc < 0){
+			perror("datalock locking fail");
+			goto e_step;
+		}
+
+e_step:
+
+		nextstep.tv_nsec += resolution.tv_nsec;
