@@ -205,3 +205,16 @@ e_cleanup:
 		printf("Failed to end client, return code %d\n", rc);
 	}
 
+}
+
+void thread_main_getvoltage(void *){
+	int rc, fd;
+	struct timespec nextstep;
+
+	/* configuration */
+	int spimode = SPI_MODE_0;
+	int lsb_first = 0; /* false */
+	int bits_per_word = 8;
+	uint32_t max_speed_hz = 1350000; /* 1.35 (MHz) */
+	int channel = 0;
+	struct timespec resolution = {
