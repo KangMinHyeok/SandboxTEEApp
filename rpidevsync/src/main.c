@@ -218,3 +218,16 @@ void thread_main_getvoltage(void *){
 	uint32_t max_speed_hz = 1350000; /* 1.35 (MHz) */
 	int channel = 0;
 	struct timespec resolution = {
+		.tv_sec = 0,
+		.tv_nsec = 7000000,
+	};
+
+	rc = mcp3004_open("/dev/spidev0.0", spimode, lsb_first, bits_per_word, channel);
+	if(rc < 0)
+		goto e_exit;
+
+	fd = rc;
+
+	rc = clock_gettime(CLOCK_MONOTONIC, &nextstep);
+	if(rc < 0){
+		fprintf(stderr, "failed to get monotonic time\n");
