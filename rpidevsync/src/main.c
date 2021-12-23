@@ -179,3 +179,16 @@ void thread_main_payload_launch(void * arg){
 				rc = mqttsender_send(client, topic, (void *)buf, len);
 				if(rc < 0){
 					printf("Failed to send, return code %d\n", rc);
+					sleep(0);
+					continue;
+				} else{
+					break;
+				}
+			}
+			if(rc < 0){
+				printf("Failed to send, return code %d\n", rc);
+			}
+
+			len = 0;
+		}
+	}
