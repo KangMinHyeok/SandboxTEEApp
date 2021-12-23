@@ -9,6 +9,12 @@
 #include <MQTTAsync.h>
 #include <sendmqtt.h>
 
+#ifdef __cplusplus
+	#define EXPORT extern "C"
+#else
+	#define EXPORT
+#endif
+
 struct _message_entry_t;
 struct _connection_entry_t;
 
@@ -38,6 +44,7 @@ static void on_connectionLost(void * context, char * cause) {
 static void on_deliverySuccess(void * context, MQTTAsync_successData * response){
 	// called when send succeeded
 	fprintf(stderr, "success callback for context %p\n", context);
+//	fprintf(stderr, "success callback for context %p\n", context);
 	
 	//erase completed token
 	message_entry_t * msgentry = (message_entry_t *) context;
@@ -138,6 +145,7 @@ e_exit:
 }
 
 int mqttsender_init(mqttsender_handle_t * Phandle, const char * address, const char * clientid, 
+EXPORT int mqttsender_init(mqttsender_handle_t * Phandle, const char * address, const char * clientid, 
 		const char * username, const char * password, 
 		int use_tls, const char * capath, int insecure_tls){
 	int rc;
@@ -225,6 +233,7 @@ e_cleanup:
 }
 
 int mqttsender_send(mqttsender_handle_t _handle, const char * topic, void * payload, size_t payloadlen){
+EXPORT int mqttsender_send(mqttsender_handle_t _handle, const char * topic, void * payload, size_t payloadlen){
 	int rc;
 	message_entry_t * msgentry;
 	size_t topiclen;
@@ -281,6 +290,7 @@ e_cleanup:
 }
 
 int mqttsender_join(mqttsender_handle_t _handle, unsigned long timeout_ms){
+EXPORT int mqttsender_join(mqttsender_handle_t _handle, unsigned long timeout_ms){
 	int rc;
 	connection_entry_t * handle = (connection_entry_t *) _handle;
 
@@ -351,6 +361,7 @@ e_exit:
 }
 
 int mqttsender_end(mqttsender_handle_t _handle){
+EXPORT int mqttsender_end(mqttsender_handle_t _handle){
 	int rc;
 	connection_entry_t * handle = (connection_entry_t *) _handle;
 
@@ -358,6 +369,7 @@ int mqttsender_end(mqttsender_handle_t _handle){
 	if(rc != MQTTASYNC_SUCCESS){
 		return rc;
 	}
+//	rc = mqttsender_join(handle, 0);
 
 	MQTTAsync_disconnectOptions disconn_options = MQTTAsync_disconnectOptions_initializer;
 	rc = MQTTAsync_disconnect(handle->client, &disconn_options);
