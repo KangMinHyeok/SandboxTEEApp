@@ -370,6 +370,9 @@ EXPORT int mqttsender_end(mqttsender_handle_t _handle){
 		return rc;
 	}
 //	rc = mqttsender_join(handle, 0);
+//	if(rc != MQTTASYNC_SUCCESS){
+//		return rc;
+//	}
 
 	MQTTAsync_disconnectOptions disconn_options = MQTTAsync_disconnectOptions_initializer;
 	rc = MQTTAsync_disconnect(handle->client, &disconn_options);
@@ -379,6 +382,15 @@ EXPORT int mqttsender_end(mqttsender_handle_t _handle){
 
 	MQTTAsync_destroy(&handle->client);
 
+//	while(1){
+//		message_entry_t * msgentry = handle->messagelist;
+//		if(!msgentry){
+//			break;
+//		}
+//
+//		// delete from list
+//		if(msgentry == msgentry->next){
+//			handle->messagelist = NULL;
 	free(handle);
 
 	return rc;
