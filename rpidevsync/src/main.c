@@ -309,3 +309,16 @@ e_exit:
 typedef struct _option_t {
 	const char * addr;
 	const char * clientid;
+	const char * username;
+	const char * password;
+	const char * topic;
+	const char * capath;
+} option_t;
+
+#include <time.h>
+
+int main(int argc, char * argv[]){
+	int rc;
+	MQTTAsync client;
+
+	const char * addr = ADDRESS;
