@@ -23,3 +23,16 @@
  * 
  * optional arguments:
  *   -h, --help            show this help message and exit
+ *   --sanitize            sanitize behavior of program
+ *   -s SEED, --seed SEED  seed for generating random number
+ *   --noise NOISE         magnitude of noise of ecg signal
+ *   -r RESOLUTION, --resolution RESOLUTION
+ *                         time interval between each sample
+ *   --resolution-stderr RESOLUTION_STDERR
+ *                         std error of time interval between each sample
+ *   -i CLIENT_ID, --client-id CLIENT_ID
+ *                         id to use for this client (default: sampleclient
+ *                         appended with random number)
+ *   -H HOST, --host HOST  mqtt host to connect to (default: localhost)
+ *   -p PORT, --port PORT  network port to connect to (default: 1883)
+ *   -t TOPIC, --topic TOPIC
