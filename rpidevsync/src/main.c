@@ -283,3 +283,16 @@ e_cleanup_step:
 e_step:
 
 		nextstep.tv_nsec += resolution.tv_nsec;
+		if(nextstep.tv_nsec >= 1000000000){
+			nextstep.tv_nsec -= 1000000000;
+			nextstep.tv_sec++;
+		}
+
+		rc = clock_nanosleep(&CLOCK_MONOTONIC, TIMER_ABSTIME, &nextstep, NULL);
+		if(rc < 0){
+			fprintf(stderr, "clock_nanosleep returned error code %d\n", rc);
+		}
+	}
+
+
+e_cleanup:
