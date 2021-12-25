@@ -442,8 +442,42 @@ void * thread_main_payload_launch(void * _arg){
 		char * addr_mod;
 
 		addr_len = snprintf(NULL, 0, "%s://%s:%u", 
+				arg->enable_tls ? "ssl" : "tcp",
+				arg->host, arg->port);
+
+		addr_mod = malloc(addr_len + 1);
+		if(!addr_mod){
+			perror("address uri string memory allocation fail");
+			exit(errno);
+		}
+
+		rc = snprintf(addr_mod, addr_len + 1, "%s://%s:%u", 
+				arg->enable_tls ? "ssl" : "tcp",
+				arg->host, arg->port);
+
+		if(rc >= addr_len + 1){
+			fprintf(stderr, "snprintf %ld bytes left to write\n", (long)(rc - addr_len + 1 + 1));
+			endofdata = 1;
+			return NULL;
+		}
+
+		addr = addr_mod;
+	}
+
+	{
+		buf = malloc(BLOCK_SIZE);
+		if(!buf){
+			perror("block buffer allocation failed");
+			endofdata = 1;
+			return NULL;
+		}
+	}
+
+	rc = mqttsender_init(&client, addr, clientid, username, password, 
+			arg->enable_tls, capath, arg->tls_disable_check);
 	if(rc < 0){
 		printf("Failed to initialize, return code %d\n", rc);
+		fprintf(stderr, "Failed to initialize, return code %d\n", rc);
 		goto e_cleanup;
 	}
 
@@ -456,11 +490,20 @@ void * thread_main_payload_launch(void * _arg){
 
 		while(head != NULL && len + sizeof(ecgdatapoint_t) <= BLOCK_SIZE){
 			Pdataelement_t onload = pop_from_head();
+		if(head == NULL && endofdata) {
+			recvall = 1;
+		} else {
+			while(head != NULL && len + sizeof(ecgdatapoint_t) <= BLOCK_SIZE){
+				Pdataelement_t onload = pop_from_head();
 
 			memcpy(&buf[len], (void *) &onload->data, sizeof(ecgdatapoint_t));
 			len += sizeof(ecgdatapoint_t);
+				memcpy(&buf[len], (void *) &onload->data, sizeof(ecgdatapoint_t));
+				len += sizeof(ecgdatapoint_t);
 
 			push_to_pool(onload);
+				push_to_pool(onload);
+			}
 		}
 
 		rc = pthread_mutex_unlock(&datalock);
@@ -469,23 +512,30 @@ void * thread_main_payload_launch(void * _arg){
 			continue;
 		}
 
+		if(recvall) break;
+
 		if(len > BLOCK_SIZE - sizeof(ecgdatapoint_t)){
 			for(size_t trycount=0;trycount<5;++trycount){
 				rc = mqttsender_send(client, topic, (void *)buf, len);
 				if(rc < 0){
 					printf("Failed to send, return code %d\n", rc);
+					fprintf(stderr, "Failed to send, return code %d\n", rc);
 					sleep(0);
 					continue;
 				} else{
+				} else {
 					break;
 				}
 			}
 			if(rc < 0){
 				printf("Failed to send, return code %d\n", rc);
+				fprintf(stderr, "Failed to send, return code %d\n", rc);
 			}
 
 			len = 0;
 		}
+
+		rc = nanosleep(&resolution, NULL);
 	}
 
 	rc = mqttsender_join(client, 1000000);
