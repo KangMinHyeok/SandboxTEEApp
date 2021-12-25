@@ -1,7 +1,12 @@
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
+#include <errno.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include <readecg.h>
 #include <sendmqtt.h>
@@ -61,6 +66,51 @@
 #define QOS         0
 #define TIMEOUT     10000L
 #define CAPATH      "./sp_cert_ca.crt"
+void argparse_help(const char * argv0){
+	if(!argv0)
+		argv0 = "ecg2mqtt";
+
+	printf(
+" usage: %s [-h] [-r RESOLUTION] [-i CLIENT_ID]\n"
+"                        [-H HOST] [-p PORT] [-t TOPIC]\n"
+"                        [-u USERNAME] [-P PASSWORD]\n"
+"                        [--tls] [--cacert CACERT]\n"
+"                        [--cert CERT] [--key KEY] [--insecure]\n"
+"                        [--block-size BLOCK_SIZE]\n"
+" \n"
+" optional arguments:\n"
+"   -h, --help            show this help message and exit\n"
+"   -r RESOLUTION, --resolution RESOLUTION\n"
+"                         time interval between each sample (default: 10) [unit: ms]\n"
+"   -i CLIENT_ID, --client-id CLIENT_ID\n"
+"                         id to use for this client (default: sampleclient\n"
+"                         appended with random number)\n"
+"   -H HOST, --host HOST  mqtt host to connect to (default: localhost)\n"
+"   -p PORT, --port PORT  network port to connect to (default: 1883)\n"
+"   -t TOPIC, --topic TOPIC\n"
+"                         mqtt topic to publish to (default: hello)\n"
+"   -u USERNAME, --username USERNAME\n"
+"                         provide a username\n"
+"   -P PASSWORD, --password PASSWORD\n"
+"                         provide a password\n"
+"   --tls                 enable tls\n"
+"   --cacert CACERT       path to a file containing trusted CA certificates to\n"
+"                         enable encrypted communication\n"
+"   --cert CERT           client certificate for authentication if required by\n"
+"                         server (not used for now)\n"
+"   --key KEY             client private key for authentication if required by\n"
+"                         server (not used for now)\n"
+"   --insecure            disable server certificate verification\n"
+"   --block-size          maximum packet size of mqtt protocol (default: 0x400) [unit: byte]\n"
+	, argv0);
+
+	exit(0);
+}
+
+struct argument_t {
+	long unsigned sample_interval_ms;	// default: 10
+	char * client_id;			// default: null (automatic random generation)
+	char * host;				// default: "localhost"
 
 typedef struct ecgdatapoint_t {
 uint64_t epoch_milliseconds;    /* unit: [ms] */
