@@ -311,6 +311,24 @@ void argparse_parse_args(int argc, char *argv[], struct argument_t * arg){
 				break;
 			case 'B':
 				arg->block_size = atoi(optarg);
+				break;
+			default:
+				argparse_help(argc > 0 ? argv[0] : NULL);
+				exit(-EINVAL);
+				break;
+		}
+	}
+}
+
+//#define ADDRESS     "ssl://147.46.244.130:8883"
+//#define CLIENTID    "RaspberryPiAlpha"
+//#define USERNAME    "demo"
+//#define PASSWORD    "guest"
+//#define TOPIC       "hello"
+////#define PAYLOAD     "Msg from RaspberryPiAlpha"
+//#define QOS         0
+//#define TIMEOUT     10000L
+//#define CAPATH      "./sp_cert_ca.crt"
 
 typedef struct ecgdatapoint_t {
 uint64_t epoch_milliseconds;    /* unit: [ms] */
@@ -337,6 +355,7 @@ typedef struct _dataelement_t {
 
 static pthread_mutex_t datalock = PTHREAD_MUTEX_INITIALIZER;
 static Pdataelement_t head = NULL, tail = NULL, pool = NULL;
+static int endofdata = 0;
 
 static inline void push_to_head_tail(Pdataelement_t p, Pdataelement_t * Phead, Pdataelement_t * Ptail){
 	if(Phead == NULL) return;
@@ -371,11 +390,15 @@ static inline Pdataelement_t pop_from_head_tail(Pdataelement_t * Phead, Pdataele
 
 static inline Pdataelement_t pop_from_head(){ return pop_from_head_tail(&head, &tail); }
 static inline void push_to_head(Pdataelement_t p){ push_to_head_tail(p, &head, &tail); }
+static inline void push_to_tail(Pdataelement_t p){ if(!tail){ head = p; } else { tail->next = p; } tail = p; p->next = NULL; }
 static inline Pdataelement_t pop_from_pool(){ return pop_from_head_tail(&pool, NULL); }
 static inline void push_to_pool(Pdataelement_t p){ push_to_head_tail(p, &pool, NULL); }
 
 void thread_main_payload_launch(void * arg){
 	int rc;
+void * thread_main_payload_launch(void * _arg){
+	int rc, recvall = 0;
+	struct argument_t * arg = (struct argument_t *)_arg;
 
 	MQTTAsync client;
 
@@ -385,13 +408,40 @@ void thread_main_payload_launch(void * arg){
 	const char * password = PASSWORD;
 	const char * topic = TOPIC;
 	const char * capath = CAPATH;
+	char * addr;
+	const char * clientid = arg->client_id;
+	const char * username = arg->username;
+	const char * password = arg->password;
+	const char * topic = arg->topic;
+	const char * capath = arg->cacert;
 
 	const size_t BLOCK_SIZE = 0x400;
+	size_t BLOCK_SIZE = arg->block_size; // 0x100; // 0x400;
 
 	size_t len = 0;
 	unsigned char buf[BLOCK_SIZE];
+	unsigned char * buf;
+
+	struct timespec resolution = {
+		.tv_sec = arg->sample_interval_ms / 1000,
+		.tv_nsec = (arg->sample_interval_ms % 1000) * 1000000,
+	};
 
 	rc = mqttsender_init(&client, addr, clientid, username, password, capath);
+	if(BLOCK_SIZE < sizeof(ecgdatapoint_t)){
+		fprintf(stderr, "increasing block size to %lu "
+	"because given block size %lu is smaller than data granularity\n", 
+		(long unsigned) sizeof(ecgdatapoint_t), (long unsigned) arg->block_size);
+		
+		BLOCK_SIZE = sizeof(ecgdatapoint_t);
+	}
+
+
+	{
+		size_t addr_len;
+		char * addr_mod;
+
+		addr_len = snprintf(NULL, 0, "%s://%s:%u", 
 	if(rc < 0){
 		printf("Failed to initialize, return code %d\n", rc);
 		goto e_cleanup;
