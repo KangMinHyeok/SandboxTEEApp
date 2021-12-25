@@ -622,62 +622,36 @@ int main(int argc, char * argv[]){
 
 	argparse_parse_args(argc, argv, &arg);
 
-		printf("Failed to initialize, return code %d\n", rc);
-		goto e_cleanup;
-	}
 	printf("argument parsing finished\n");
 	argparse_display_args(&arg);
 
-	for(int k=0;k<0x100;++k){
-		struct timespec now;
-		rc = clock_gettime(CLOCK_REALTIME, &now);
 	{
 		struct sigaction actioninfo = {
 			.sa_handler = signalhandler,
 		};
 		rc = sigemptyset(&actioninfo.sa_mask);
 		if(rc < 0){
-			perror("Failed to fetch realtime\n");
-			continue;
 			perror("sigfillset failed...");
 		}
 
-		ecgdatapoint_t data;
-		data.epoch_milliseconds = htonll((uint64_t)now.tv_sec * 1000 + now.tv_nsec / (uint64_t)1e6);
-		data.voltage = htonll((now.tv_sec % 4 * 1000) + 2000);
-
-		void * payload = (void *)(&data);
-		size_t payloadlen = sizeof(data);
-
-		rc = mqttsender_send(client, topic, payload, payloadlen);
 		rc = sigaction(SIGINT, &actioninfo, NULL);
 		if(rc < 0){
-			printf("Failed to send, return code %d\n", rc);
 			perror("failed to register sighandler");
 		}
 	}
 
-//		struct timespec sleepinterval;
-//		sleepinterval.tv_sec = 0;
-//		sleepinterval.tv_nsec = 3000000;
-//		nanosleep(&sleepinterval, NULL);
 	rc = pthread_create(&th_ecgreader, NULL, thread_main_getvoltage, &arg);
 	if(rc < 0){
 		fprintf(stderr, "failed to spawn ecg reader thread\n");
 		endofdata = 1;
 	}
 
-	rc = mqttsender_join(client, 1000000);
 	rc = pthread_create(&th_sender, NULL, thread_main_payload_launch, &arg);
 	if(rc < 0){
-		printf("Failed to wait until complete, return code %d\n", rc);
-		goto e_cleanup;
 		fprintf(stderr, "failed to spawn payload sender thread\n");
 		exit(rc);
 	}
 
-e_cleanup:
-	rc = mqttsender_end(client);
 	rc = pthread_join(th_ecgreader, NULL);
 	if(rc < 0){
 		fprintf(stderr, "failed to wait for ecg reader thread\n");
@@ -689,7 +663,5 @@ e_cleanup:
 		exit(rc);
 	}
 
-//e_exit:
-	return 0;
 	printf("successfully finished program\n");
 }
