@@ -111,6 +111,56 @@ struct argument_t {
 	long unsigned sample_interval_ms;	// default: 10
 	char * client_id;			// default: null (automatic random generation)
 	char * host;				// default: "localhost"
+	unsigned int port;			// default: 1883
+	char * topic;				// default: "hello"
+	char * username;			// default: NULL
+	char * password;			// default: NULL
+	int enable_tls;				// default: false
+	char * cacert;				// default: NULL
+	char * cert;				// default: NULL
+	char * key;				// default: NULL
+	int tls_disable_check;			// default: false
+	size_t block_size;
+};
+
+void argparse_display_args(const struct argument_t * arg){
+	printf("sample interval: %lu(ms)\n", arg->sample_interval_ms);
+	printf("client id: %s\n", arg->client_id ? arg->client_id : 
+		"(random id will be generated)");
+	printf("host: %s\n", arg->host);
+	printf("port: %u\n", arg->port);
+	printf("username: %s\n", arg->username);
+	printf("password: %s\n", arg->password ? "****** (shadowed)" : "(unset)");
+	printf("enable tls: %c\n", arg->enable_tls ? 'Y' : 'N');
+	printf("cacert: %s\n", arg->cacert ? arg->cacert : "default");
+	printf("cert: %s\n", arg->cert ? arg->cert : "no certificate specified");
+	printf("key: %s\n", arg->key ? arg->key : "no key specified");
+	printf("disable tls certificate check: %c\n", arg->tls_disable_check ? 'Y' : 'N');
+	printf("block size: %lu\n", (long unsigned)arg->block_size);
+}
+
+static char * strdup_assert(const char * s){
+	char * dup = strdup(s);
+	if(!dup){
+		perror("string duplication failed");
+		exit(errno);
+	}
+	
+	return dup;
+}
+
+void argparse_parse_args(int argc, char *argv[], struct argument_t * arg){
+	int ret;
+
+	// initialize arguments
+	arg->sample_interval_ms = 10;
+	arg->client_id = NULL;
+	arg->host = "localhost";
+	arg->port = 1883;
+	arg->topic = "hello";
+	arg->username = NULL;
+	arg->password = NULL;
+	arg->enable_tls = 0;
 
 typedef struct ecgdatapoint_t {
 uint64_t epoch_milliseconds;    /* unit: [ms] */
