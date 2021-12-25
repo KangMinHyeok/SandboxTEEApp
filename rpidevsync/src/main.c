@@ -211,6 +211,56 @@ void argparse_parse_args(int argc, char *argv[], struct argument_t * arg){
 			.has_arg = 1,
 			.flag = NULL,
 			.val = 'u'
+		},
+		{
+			.name = "password",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'P'
+		},
+		{
+			.name = "tls",
+			.has_arg = 0,
+			.flag = NULL,
+			.val = 'T'
+		},
+		{
+			.name = "cacert",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'C'
+		},
+		{
+			.name = "cert",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'c'
+		},
+		{
+			.name = "key",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'k'
+		},
+		{
+			.name = "insecure",
+			.has_arg = 0,
+			.flag = NULL,
+			.val = 'I'
+		},
+		{
+			.name = "block-size",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'B'
+		},
+		{ // last element filled with zeros
+			.name = NULL,
+			.has_arg = 0,
+			.flag = NULL,
+			.val = 0
+		}
+
 
 typedef struct ecgdatapoint_t {
 uint64_t epoch_milliseconds;    /* unit: [ms] */
