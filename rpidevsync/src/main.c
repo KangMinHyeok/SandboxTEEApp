@@ -10,12 +10,6 @@
 #include <readecg.h>
 #include <sendmqtt.h>
 
-#define PASSWORD    "guest"
-#define TOPIC       "hello"
-//#define PAYLOAD     "Msg from RaspberryPiAlpha"
-#define QOS         0
-#define TIMEOUT     10000L
-#define CAPATH      "./sp_cert_ca.crt"
 void argparse_help(const char * argv0){
 	if(!argv0)
 		argv0 = "ecg2mqtt";
@@ -344,20 +338,12 @@ static inline void push_to_tail(Pdataelement_t p){ if(!tail){ head = p; } else {
 static inline Pdataelement_t pop_from_pool(){ return pop_from_head_tail(&pool, NULL); }
 static inline void push_to_pool(Pdataelement_t p){ push_to_head_tail(p, &pool, NULL); }
 
-void thread_main_payload_launch(void * arg){
-	int rc;
 void * thread_main_payload_launch(void * _arg){
 	int rc, recvall = 0;
 	struct argument_t * arg = (struct argument_t *)_arg;
 
 	MQTTAsync client;
 
-	const char * addr = ADDRESS;
-	const char * clientid = CLIENTID;
-	const char * username = USERNAME;
-	const char * password = PASSWORD;
-	const char * topic = TOPIC;
-	const char * capath = CAPATH;
 	char * addr;
 	const char * clientid = arg->client_id;
 	const char * username = arg->username;
@@ -365,11 +351,9 @@ void * thread_main_payload_launch(void * _arg){
 	const char * topic = arg->topic;
 	const char * capath = arg->cacert;
 
-	const size_t BLOCK_SIZE = 0x400;
 	size_t BLOCK_SIZE = arg->block_size; // 0x100; // 0x400;
 
 	size_t len = 0;
-	unsigned char buf[BLOCK_SIZE];
 	unsigned char * buf;
 
 	struct timespec resolution = {
@@ -377,7 +361,6 @@ void * thread_main_payload_launch(void * _arg){
 		.tv_nsec = (arg->sample_interval_ms % 1000) * 1000000,
 	};
 
-	rc = mqttsender_init(&client, addr, clientid, username, password, capath);
 	if(BLOCK_SIZE < sizeof(ecgdatapoint_t)){
 		fprintf(stderr, "increasing block size to %lu "
 	"because given block size %lu is smaller than data granularity\n", 
@@ -426,7 +409,6 @@ void * thread_main_payload_launch(void * _arg){
 	rc = mqttsender_init(&client, addr, clientid, username, password, 
 			arg->enable_tls, capath, arg->tls_disable_check);
 	if(rc < 0){
-		printf("Failed to initialize, return code %d\n", rc);
 		fprintf(stderr, "Failed to initialize, return code %d\n", rc);
 		goto e_cleanup;
 	}
@@ -438,20 +420,15 @@ void * thread_main_payload_launch(void * _arg){
 			continue;
 		}
 
-		while(head != NULL && len + sizeof(ecgdatapoint_t) <= BLOCK_SIZE){
-			Pdataelement_t onload = pop_from_head();
 		if(head == NULL && endofdata) {
 			recvall = 1;
 		} else {
 			while(head != NULL && len + sizeof(ecgdatapoint_t) <= BLOCK_SIZE){
 				Pdataelement_t onload = pop_from_head();
 
-			memcpy(&buf[len], (void *) &onload->data, sizeof(ecgdatapoint_t));
-			len += sizeof(ecgdatapoint_t);
 				memcpy(&buf[len], (void *) &onload->data, sizeof(ecgdatapoint_t));
 				len += sizeof(ecgdatapoint_t);
 
-			push_to_pool(onload);
 				push_to_pool(onload);
 			}
 		}
@@ -468,17 +445,14 @@ void * thread_main_payload_launch(void * _arg){
 			for(size_t trycount=0;trycount<5;++trycount){
 				rc = mqttsender_send(client, topic, (void *)buf, len);
 				if(rc < 0){
-					printf("Failed to send, return code %d\n", rc);
 					fprintf(stderr, "Failed to send, return code %d\n", rc);
 					sleep(0);
 					continue;
-				} else{
 				} else {
 					break;
 				}
 			}
 			if(rc < 0){
-				printf("Failed to send, return code %d\n", rc);
 				fprintf(stderr, "Failed to send, return code %d\n", rc);
 			}
 
@@ -509,10 +483,8 @@ void * thread_main_payload_launch(void * _arg){
 		len = 0;
 	}
 
-	rc = mqttsender_join(client, 1000000);
 	rc = mqttsender_join(client, 600000);
 	if(rc < 0){
-		printf("Failed to wait until complete, return code %d\n", rc);
 		fprintf(stderr, "Failed to wait until complete, return code %d\n", rc);
 		goto e_cleanup;
 	}
@@ -520,14 +492,12 @@ void * thread_main_payload_launch(void * _arg){
 e_cleanup:
 	rc = mqttsender_end(client);
 	if(rc < 0){
-		printf("Failed to end client, return code %d\n", rc);
 		fprintf(stderr, "Failed to end client, return code %d\n", rc);
 	}
 
 	return NULL;
 }
 
-void thread_main_getvoltage(void *){
 void * thread_main_getvoltage(void * _arg){
 	int rc, fd;
 	struct timespec nextstep;
@@ -540,13 +510,10 @@ void * thread_main_getvoltage(void * _arg){
 	uint32_t max_speed_hz = 1350000; /* 1.35 (MHz) */
 	int channel = 0;
 	struct timespec resolution = {
-		.tv_sec = 0,
-		.tv_nsec = 7000000,
 		.tv_sec = arg->sample_interval_ms / 1000,
 		.tv_nsec = (arg->sample_interval_ms % 1000) * 1000000,
 	};
 
-	rc = mcp3004_open("/dev/spidev0.0", spimode, lsb_first, bits_per_word, channel);
 	rc = mcp3004_open("/dev/spidev0.0", spimode, lsb_first, bits_per_word, max_speed_hz);
 	if(rc < 0)
 		goto e_exit;
@@ -563,7 +530,6 @@ void * thread_main_getvoltage(void * _arg){
 		if(endofdata) break;
 
 		struct timespec now;
-		ecgdatapoint_t element;
 		ecgdatapoint_t data;
 		Pdataelement_t p = NULL;
 
@@ -580,7 +546,6 @@ void * thread_main_getvoltage(void * _arg){
 		}
 
 		data.epoch_milliseconds = htonll((uint64_t)now.tv_sec * 1000 + now.tv_nsec / (uint64_t)1e6);
-		data.voltage = htonll(mcp3004_value_to_voltage((uint32_t)rc));
 
 		rc = pthread_mutex_lock(&datalock);
 		if(rc < 0){
@@ -598,8 +563,6 @@ void * thread_main_getvoltage(void * _arg){
 			p = pop_from_pool();
 		}
 
-		memcpy(&p->data, &element, sizeof(ecgdatapoint_t));
-		push_to_head(p);
 		memcpy(&p->data, &data, sizeof(ecgdatapoint_t));
 		push_to_tail(p);
 
@@ -619,7 +582,6 @@ e_step:
 			nextstep.tv_sec++;
 		}
 
-		rc = clock_nanosleep(&CLOCK_MONOTONIC, TIMER_ABSTIME, &nextstep, NULL);
 		rc = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &nextstep, NULL);
 		if(rc < 0){
 			fprintf(stderr, "clock_nanosleep returned error code %d\n", rc);
@@ -634,7 +596,6 @@ e_cleanup:
 	}
 
 e_exit:
-	return;
 	return NULL;
 }
 
@@ -654,24 +615,13 @@ typedef struct _option_t {
 	const char * capath;
 } option_t;
 
-#include <time.h>
-
 int main(int argc, char * argv[]){
 	int rc;
-	MQTTAsync client;
 	pthread_t th_ecgreader, th_sender;
 	struct argument_t arg;
 
-	const char * addr = ADDRESS;
-	const char * clientid = CLIENTID;
-	const char * username = USERNAME;
-	const char * password = PASSWORD;
-	const char * topic = TOPIC;
-	const char * capath = CAPATH;
 	argparse_parse_args(argc, argv, &arg);
 
-	rc = mqttsender_init(&client, addr, clientid, username, password, capath);
-	if(rc < 0){
 		printf("Failed to initialize, return code %d\n", rc);
 		goto e_cleanup;
 	}
