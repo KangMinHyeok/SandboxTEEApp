@@ -161,6 +161,56 @@ void argparse_parse_args(int argc, char *argv[], struct argument_t * arg){
 	arg->username = NULL;
 	arg->password = NULL;
 	arg->enable_tls = 0;
+	arg->cacert = NULL;
+	arg->cert = NULL;
+	arg->key = NULL;
+	arg->tls_disable_check = 0;
+	arg->block_size = 0x400;
+
+	const char * optstring = "hr:i:H:p:t:u:P:";
+
+	const struct option longopts[] = {
+		{
+			.name = "help",
+			.has_arg = 0,
+			.flag = NULL,
+			.val = 'h'
+		},
+		{
+			.name = "resolution",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'r'
+		},
+		{
+			.name = "client-id",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'i'
+		},
+		{
+			.name = "host",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'H'
+		},
+		{
+			.name = "port",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'p'
+		},
+		{
+			.name = "topic",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 't'
+		},
+		{
+			.name = "username",
+			.has_arg = 1,
+			.flag = NULL,
+			.val = 'u'
 
 typedef struct ecgdatapoint_t {
 uint64_t epoch_milliseconds;    /* unit: [ms] */
