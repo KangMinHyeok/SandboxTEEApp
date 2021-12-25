@@ -536,11 +536,34 @@ void * thread_main_payload_launch(void * _arg){
 		}
 
 		rc = nanosleep(&resolution, NULL);
+		if(rc < 0){
+			perror("mqtt sender nanosleep early return");
+		}
+	}
+
+	if(len > 0){
+		for(size_t trycount=0;trycount<5;++trycount){
+			rc = mqttsender_send(client, topic, (void *)buf, len);
+			if(rc < 0){
+				fprintf(stderr, "Failed to send, return code %d\n", rc);
+				sleep(0);
+				continue;
+			} else {
+				break;
+			}
+		}
+		if(rc < 0){
+			fprintf(stderr, "Failed to send, return code %d\n", rc);
+		}
+
+		len = 0;
 	}
 
 	rc = mqttsender_join(client, 1000000);
+	rc = mqttsender_join(client, 600000);
 	if(rc < 0){
 		printf("Failed to wait until complete, return code %d\n", rc);
+		fprintf(stderr, "Failed to wait until complete, return code %d\n", rc);
 		goto e_cleanup;
 	}
 
@@ -548,13 +571,17 @@ e_cleanup:
 	rc = mqttsender_end(client);
 	if(rc < 0){
 		printf("Failed to end client, return code %d\n", rc);
+		fprintf(stderr, "Failed to end client, return code %d\n", rc);
 	}
 
+	return NULL;
 }
 
 void thread_main_getvoltage(void *){
+void * thread_main_getvoltage(void * _arg){
 	int rc, fd;
 	struct timespec nextstep;
+	struct argument_t * arg = (struct argument_t *)_arg;
 
 	/* configuration */
 	int spimode = SPI_MODE_0;
@@ -565,9 +592,12 @@ void thread_main_getvoltage(void *){
 	struct timespec resolution = {
 		.tv_sec = 0,
 		.tv_nsec = 7000000,
+		.tv_sec = arg->sample_interval_ms / 1000,
+		.tv_nsec = (arg->sample_interval_ms % 1000) * 1000000,
 	};
 
 	rc = mcp3004_open("/dev/spidev0.0", spimode, lsb_first, bits_per_word, channel);
+	rc = mcp3004_open("/dev/spidev0.0", spimode, lsb_first, bits_per_word, max_speed_hz);
 	if(rc < 0)
 		goto e_exit;
 
@@ -580,14 +610,18 @@ void thread_main_getvoltage(void *){
 	}
 
 	while(1){
+		if(endofdata) break;
+
 		struct timespec now;
 		ecgdatapoint_t element;
+		ecgdatapoint_t data;
 		Pdataelement_t p = NULL;
 
 		rc = mcp3004_readvalue(fd, channel);
 		if(rc < 0){
 			goto e_step;
 		}
+		data.voltage = htonll(mcp3004_value_to_voltage((uint32_t)rc));
 
 		rc = clock_gettime(CLOCK_REALTIME, &now);
 		if(rc < 0){
@@ -616,6 +650,8 @@ void thread_main_getvoltage(void *){
 
 		memcpy(&p->data, &element, sizeof(ecgdatapoint_t));
 		push_to_head(p);
+		memcpy(&p->data, &data, sizeof(ecgdatapoint_t));
+		push_to_tail(p);
 
 e_cleanup_step:
 
@@ -634,6 +670,7 @@ e_step:
 		}
 
 		rc = clock_nanosleep(&CLOCK_MONOTONIC, TIMER_ABSTIME, &nextstep, NULL);
+		rc = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &nextstep, NULL);
 		if(rc < 0){
 			fprintf(stderr, "clock_nanosleep returned error code %d\n", rc);
 		}
@@ -648,7 +685,14 @@ e_cleanup:
 
 e_exit:
 	return;
+	return NULL;
+}
 
+static void signalhandler(int signum){
+	
+	endofdata = 1;
+
+	fprintf(stderr, "received signal %d\n", signum);
 }
 
 typedef struct _option_t {
@@ -665,6 +709,8 @@ typedef struct _option_t {
 int main(int argc, char * argv[]){
 	int rc;
 	MQTTAsync client;
+	pthread_t th_ecgreader, th_sender;
+	struct argument_t arg;
 
 	const char * addr = ADDRESS;
 	const char * clientid = CLIENTID;
@@ -672,16 +718,20 @@ int main(int argc, char * argv[]){
 	const char * password = PASSWORD;
 	const char * topic = TOPIC;
 	const char * capath = CAPATH;
+	argparse_parse_args(argc, argv, &arg);
 
 	rc = mqttsender_init(&client, addr, clientid, username, password, capath);
 	if(rc < 0){
 		printf("Failed to initialize, return code %d\n", rc);
 		goto e_cleanup;
 	}
+	printf("argument parsing finished\n");
+	argparse_display_args(&arg);
 
 	for(int k=0;k<0x100;++k){
 		struct timespec now;
 		rc = clock_gettime(CLOCK_REALTIME, &now);
+	{
 		if(rc < 0){
 			perror("Failed to fetch realtime\n");
 			continue;
