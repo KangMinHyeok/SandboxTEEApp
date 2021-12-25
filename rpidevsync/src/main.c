@@ -261,6 +261,56 @@ void argparse_parse_args(int argc, char *argv[], struct argument_t * arg){
 			.val = 0
 		}
 
+	};
+
+	while((ret = getopt_long(argc, argv, optstring, longopts, NULL)) != -1){
+		switch(ret){
+			case 'h':
+				argparse_help(argc > 0 ? argv[0] : NULL);
+				exit(0);
+				break;
+			case 'r':
+				arg->sample_interval_ms = atoi(optarg);
+				break;
+			case 'i':
+				arg->client_id = strdup_assert(optarg);
+				break;
+			case 'H':
+				arg->host = strdup_assert(optarg);
+				break;
+			case 'p':
+				arg->port = atoi(optarg);
+				break;
+			case 't':
+				arg->topic = strdup_assert(optarg);
+				break;
+			case 'u':
+				arg->username = strdup_assert(optarg);
+				break;
+			case 'P':
+				arg->password = strdup_assert(optarg);
+				break;
+			case 'T':
+				arg->enable_tls = 1;
+				break;
+			case 'C':
+				arg->cacert = strdup_assert(optarg);
+				break;
+			case 'c':
+				fprintf(stderr, "cert option not currently used\n");
+				exit(0);
+				arg->cert = strdup_assert(optarg);
+				break;
+			case 'k':
+				fprintf(stderr, "key option not currently used\n");
+				exit(0);
+				arg->key = strdup_assert(optarg);
+				break;
+			case 'I':
+				arg->tls_disable_check = 1;
+				break;
+			case 'B':
+				arg->block_size = atoi(optarg);
 
 typedef struct ecgdatapoint_t {
 uint64_t epoch_milliseconds;    /* unit: [ms] */
