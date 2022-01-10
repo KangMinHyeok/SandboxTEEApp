@@ -353,7 +353,7 @@ void * thread_main_payload_launch(void * _arg){
 
 	size_t BLOCK_SIZE = arg->block_size; // 0x100; // 0x400;
 
-	size_t len = 0;
+	size_t len = sizeof(uint64_t) + sizeof(uint64_t);
 	unsigned char * buf;
 
 	struct timespec resolution = {
@@ -423,11 +423,16 @@ void * thread_main_payload_launch(void * _arg){
 		if(head == NULL && endofdata) {
 			recvall = 1;
 		} else {
-			while(head != NULL && len + sizeof(ecgdatapoint_t) <= BLOCK_SIZE){
+			while(head != NULL && len + sizeof(uint64_t) <= BLOCK_SIZE){
+				uint64_t curmax = *(uint64_t *)buf;
 				Pdataelement_t onload = pop_from_head();
 
-				memcpy(&buf[len], (void *) &onload->data, sizeof(ecgdatapoint_t));
-				len += sizeof(ecgdatapoint_t);
+				if(curmax < onload->data.voltage)
+					curmax = onload->data.voltage;
+				*(uint64_t *)(&buf[len]) = htonll(onload->data.voltage);
+				*(uint64_t *)buf = curmax;
+				(*(uint64_t *)(&buf[sizeof(uint64_t)]))++;
+				len += sizeof(uint64_t);
 
 				push_to_pool(onload);
 			}
@@ -441,7 +446,9 @@ void * thread_main_payload_launch(void * _arg){
 
 		if(recvall) break;
 
-		if(len > BLOCK_SIZE - sizeof(ecgdatapoint_t)){
+		if(len > BLOCK_SIZE - (sizeof(uint64_t) + sizeof(uint64_t))){
+			*(uint64_t *)buf = htonll(*(uint64_t *)buf);
+			*(uint64_t *)(&buf[sizeof(uint64_t)]) = htonll(*(uint64_t *)(&buf[sizeof(uint64_t)]));
 			for(size_t trycount=0;trycount<5;++trycount){
 				rc = mqttsender_send(client, topic, (void *)buf, len);
 				if(rc < 0){
@@ -456,7 +463,9 @@ void * thread_main_payload_launch(void * _arg){
 				fprintf(stderr, "Failed to send, return code %d\n", rc);
 			}
 
-			len = 0;
+			len = sizeof(uint64_t) + sizeof(uint64_t);
+			*(uint64_t *)buf = (uint64_t)(-1);
+			*(uint64_t *)(&buf[sizeof(uint64_t)]) = (uint64_t)0;
 		}
 
 		rc = nanosleep(&resolution, NULL);
@@ -465,7 +474,9 @@ void * thread_main_payload_launch(void * _arg){
 		}
 	}
 
-	if(len > 0){
+	if(len > sizeof(uint64_t)){
+		*(uint64_t *)buf = htonll(*(uint64_t *)buf);
+		*(uint64_t *)(&buf[sizeof(uint64_t)]) = htonll(*(uint64_t *)(&buf[sizeof(uint64_t)]));
 		for(size_t trycount=0;trycount<5;++trycount){
 			rc = mqttsender_send(client, topic, (void *)buf, len);
 			if(rc < 0){
@@ -480,7 +491,9 @@ void * thread_main_payload_launch(void * _arg){
 			fprintf(stderr, "Failed to send, return code %d\n", rc);
 		}
 
-		len = 0;
+		len = sizeof(uint64_t) + sizeof(uint64_t);
+		*(uint64_t *)buf = (uint64_t)(-1);
+		*(uint64_t *)(&buf[sizeof(uint64_t)]) = (uint64_t)0;
 	}
 
 	rc = mqttsender_join(client, 600000);
@@ -537,7 +550,7 @@ void * thread_main_getvoltage(void * _arg){
 		if(rc < 0){
 			goto e_step;
 		}
-		data.voltage = htonll(mcp3004_value_to_voltage((uint32_t)rc));
+		data.voltage = mcp3004_value_to_voltage((uint32_t)rc);
 
 		rc = clock_gettime(CLOCK_REALTIME, &now);
 		if(rc < 0){
@@ -545,7 +558,7 @@ void * thread_main_getvoltage(void * _arg){
 			goto e_step;
 		}
 
-		data.epoch_milliseconds = htonll((uint64_t)now.tv_sec * 1000 + now.tv_nsec / (uint64_t)1e6);
+		data.epoch_milliseconds = (uint64_t)now.tv_sec * 1000 + now.tv_nsec / (uint64_t)1e6;
 
 		rc = pthread_mutex_lock(&datalock);
 		if(rc < 0){
